@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NoSpy</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="main.js" defer></script>
+  </head>
+  <body>
+    <!-- Smooth App Startup Loading Overlay -->
+    <div class="app-loader" id="app-loader">
+      <div class="loader-content">
+        <div class="loader-ring">
+          <svg viewBox="0 0 48 48">
+            <circle class="ring-track" cx="24" cy="24" r="20" fill="none" stroke-width="2.5" />
+            <circle class="ring-Head" cx="24" cy="24" r="20" fill="none" stroke-width="2.5" />
+          </svg>
+          <div class="loader-shield">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="loader-text-group">
+          <span class="loader-title">NoSpy</span>
+          <span class="loader-label">Loading real-time protection & telemetry…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Groq AI Prompt Modal -->
+    <div class="modal-backdrop hidden" id="groq-modal">
+      <div class="glass-card modal-card">
+        <div class="modal-header">
+          <div class="modal-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h3>Groq AI Assisted Scanning</h3>
+            <p class="modal-prompt-text">
+              Would you like to upload Groq To help scaning? If so put your key below.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-body">
+          <input
+            type="password"
+            id="groq-key-input"
+            class="glass-input"
+            placeholder="Paste your Groq API key (e.g. gsk_...)"
+            autocomplete="off"
+          />
+          <span class="modal-hint">
+            Your key is stored locally on your device and used to analyze de-sourced binaries, scripts, and heuristic detections.
+          </span>
+        </div>
+
+        <div class="modal-footer">
+          <button class="glass-btn secondary" id="groq-skip-btn">Not Now</button>
+          <button class="glass-btn primary" id="groq-save-btn">Enable Groq Scanning</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-layout">
+      <!-- Ambient Background Glows (Monochrome Frosted Depth) -->
+      <div class="ambient-glow glow-top"></div>
+      <div class="ambient-glow glow-bottom"></div>
+
+      <!-- Sidebar -->
+      <aside class="glass-sidebar">
+        <div class="brand" id="sidebar-drag-handle">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">NoSpy</span>
+            <span class="brand-sub">Endpoint Security</span>
+          </div>
+        </div>
+
+        <nav class="nav-menu">
+          <div class="nav-group-label">Protection</div>
+          <button class="nav-item active" data-tab="dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect width="7" height="9" x="3" y="3" rx="1.75"/>
+              <rect width="7" height="5" x="14" y="3" rx="1.75"/>
+              <rect width="7" height="9" x="14" y="12" rx="1.75"/>
+              <rect width="7" height="5" x="3" y="16" rx="1.75"/>
+            </svg>
+            <span>Overview</span>
+          </button>
+
+          <button class="nav-item" data-tab="realtime">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Real-Time Guard</span>
+            <span class="badge" id="sidebar-rt-badge">On</span>
+          </button>
+
+          <button class="nav-item" data-tab="scanner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.3-4.3" stroke-linecap="round"/>
+            </svg>
+            <span>Threat Scanner</span>
+            <span class="badge threat-badge" id="sidebar-threat-count" style="display:none;">0</span>
+          </button>
+
+          <button class="nav-item" data-tab="desource">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <polyline points="16 18 22 12 16 6" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="8 6 2 12 8 18" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>De-Source Check</span>
+          </button>
+
+          <button class="nav-item" data-tab="ransomware">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <rect width="8" height="6" x="8" y="11" rx="1"/>
+              <path d="M10 11V9a2 2 0 1 1 4 0v2"/>
+            </svg>
+            <span>Ransomware Shield</span>
+          </button>
+
+          <div class="nav-group-label" style="margin-top: 8px;">System & Telemetry</div>
+
+          <button class="nav-item" data-tab="stats">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="m7 14 4-4 4 3 5-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Resource Graph</span>
+          </button>
+
+          <button class="nav-item" data-tab="processes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect width="18" height="18" x="3" y="3" rx="3"/>
+              <path d="m9 9 3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 15h3" stroke-linecap="round"/>
+            </svg>
+            <span>Processes</span>
+          </button>
+
+          <button class="nav-item" data-tab="network">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M3.6 9h16.8"/>
+              <path d="M3.6 15h16.8"/>
+              <path d="M11.5 3a17 17 0 0 0 0 18"/>
+              <path d="M12.5 3a17 17 0 0 1 0 18"/>
+            </svg>
+            <span>Network</span>
+          </button>
+
+          <button class="nav-item" data-tab="autoruns">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" stroke-linejoin="round"/>
+            </svg>
+            <span>Startup Items</span>
+          </button>
+
+          <button class="nav-item" data-tab="quarantine">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect width="18" height="11" x="3" y="11" rx="2.5" ry="2.5"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span>Quarantine</span>
+            <span class="badge" id="sidebar-quarantine-count">0</span>
+          </button>
+        </nav>
+
+        <!-- Sidebar Mini Telemetry Footer -->
+        <div class="sidebar-telemetry" id="sidebar-telemetry-card" title="Open Resource Graph">
+          <div class="side-tele-row">
+            <span class="side-tele-label">CPU</span>
+            <span class="side-tele-val" id="side-cpu-val">—</span>
+          </div>
+          <div class="side-tele-bar">
+            <div class="side-tele-fill" id="side-cpu-bar" style="width: 0%"></div>
+          </div>
+          <div class="side-tele-row" style="margin-top: 6px;">
+            <span class="side-tele-label">RAM</span>
+            <span class="side-tele-val" id="side-ram-val">—</span>
+          </div>
+          <div class="side-tele-bar">
+            <div class="side-tele-fill" id="side-ram-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Area -->
+      <main class="glass-main">
+        <header class="glass-header" id="header-drag-handle">
+          <div class="header-title-box">
+            <h1 id="view-title">Overview</h1>
+            <p id="view-subtitle">Real-time protection, source analysis, and telemetry</p>
+          </div>
+
+          <div class="header-right">
+            <div class="header-actions">
+              <button class="glass-btn secondary" id="header-groq-btn" title="Configure Groq AI Key">
+                <span id="header-groq-label">Groq AI: Setup</span>
+              </button>
+              <button class="glass-btn secondary" id="header-deep-scan-btn">
+                <span>Deep Scan</span>
+              </button>
+              <button class="glass-btn primary" id="header-quick-scan-btn">
+                <span>Quick Scan</span>
+              </button>
+            </div>
+
+            <div class="window-controls">
+              <button class="win-btn" id="win-min-btn" title="Minimize">
+                <svg viewBox="0 0 12 12"><line x1="2" y1="6" x2="10" y2="6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </button>
+              <button class="win-btn" id="win-max-btn" title="Maximize">
+                <svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
+              </button>
+              <button class="win-btn close" id="win-close-btn" title="Close">
+                <svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <div class="views-wrapper">
+          <!-- 1. OVERVIEW TAB -->
+          <section class="tab-view active" id="tab-dashboard">
+            <div class="glass-card overview-banner">
+              <div class="overview-banner-left">
+                <div class="banner-emblem" id="banner-emblem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="banner-copy">
+                  <h2 id="dash-status-heading">No threats detected</h2>
+                  <p id="dash-status-desc">
+                    Real-time process guard, ransomware canary traps, and source checks are active.
+                  </p>
+                </div>
+              </div>
+              <div class="overview-banner-actions">
+                <button class="glass-btn secondary" id="dash-desource-btn">De-Source Check</button>
+                <button class="glass-btn primary" id="dash-quick-scan-btn">Run Quick Scan</button>
+              </div>
+            </div>
+
+            <!-- Telemetry Metric Cards -->
+            <div class="metrics-grid">
+              <div class="metric-card glass-card" data-target-tab="processes">
+                <div class="metric-card-top">
+                  <span class="metric-title">Processes</span>
+                  <div class="metric-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                      <rect width="18" height="18" x="3" y="3" rx="3"/>
+                      <path d="m9 9 3 3-3 3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+                <span class="metric-number" id="metric-processes">0</span>
+                <div class="metric-card-foot">
+                  <span class="metric-sub" id="metric-proc-suspicious">0 flagged</span>
+                  <span class="metric-arrow">→</span>
+                </div>
+              </div>
+
+              <div class="metric-card glass-card" data-target-tab="network">
+                <div class="metric-card-top">
+                  <span class="metric-title">Network Sockets</span>
+                  <div class="metric-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                      <circle cx="12" cy="12" r="9"/>
+                      <path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/>
+                    </svg>
+                  </div>
+                </div>
+                <span class="metric-number" id="metric-sockets">0</span>
+                <div class="metric-card-foot">
+                  <span class="metric-sub" id="metric-sock-suspicious">0 flagged</span>
+                  <span class="metric-arrow">→</span>
+                </div>
+              </div>
+
+              <div class="metric-card glass-card" data-target-tab="ransomware">
+                <div class="metric-card-top">
+                  <span class="metric-title">Ransomware Traps</span>
+                  <div class="metric-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </div>
+                </div>
+                <span class="metric-number" id="metric-autoruns">5</span>
+                <div class="metric-card-foot">
+                  <span class="metric-sub" id="metric-auto-suspicious">Canaries intact</span>
+                  <span class="metric-arrow">→</span>
+                </div>
+              </div>
+
+              <div class="metric-card glass-card" data-target-tab="quarantine">
+                <div class="metric-card-top">
+                  <span class="metric-title">Quarantine</span>
+                  <div class="metric-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                      <rect width="18" height="11" x="3" y="11" rx="2.5" ry="2.5"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                </div>
+                <span class="metric-number" id="metric-quarantine">0</span>
+                <div class="metric-card-foot">
+                  <span class="metric-sub">Isolated files</span>
+                  <span class="metric-arrow">→</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Process Snapshot on Overview -->
+            <div class="overview-section glass-card overview-table-card">
+              <div class="card-section-header">
+                <div>
+                  <h3>Active Processes</h3>
+                  <p>Click "De-Source" on any process to inspect its binary strings, entropy, and API imports</p>
+                </div>
+                <button class="glass-btn secondary sm" id="view-all-procs-btn">View All Processes</button>
+              </div>
+              <div class="glass-table-container compact">
+                <table class="glass-table">
+                  <thead>
+                    <tr>
+                      <th>PID</th>
+                      <th>Process</th>
+                      <th>Executable Path</th>
+                      <th>Memory</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="overview-procs-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. REAL-TIME DETECTION TAB -->
+          <section class="tab-view" id="tab-realtime">
+            <div class="glass-card overview-banner">
+              <div class="overview-banner-left">
+                <div class="banner-emblem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="banner-copy">
+                  <h2 id="rt-status-heading">Real-Time Detection Active</h2>
+                  <p id="rt-status-desc">
+                    Continuously monitoring process creation, binary source entropy, network sockets, and ransomware canary traps.
+                  </p>
+                </div>
+              </div>
+              <div class="overview-banner-actions">
+                <button class="glass-btn secondary" id="rt-poll-now-btn">Sample Now</button>
+                <button class="glass-btn primary" id="rt-toggle-btn">Pause Real-Time Guard</button>
+              </div>
+            </div>
+
+            <div class="scan-pillars-grid">
+              <div class="glass-card scan-pillar">
+                <span class="pillar-title">Events Inspected</span>
+                <span class="metric-number" id="rt-events-count" style="margin-top:4px;">0</span>
+                <span class="pillar-desc">Live process spawns, network hooks, and canary checks</span>
+              </div>
+              <div class="glass-card scan-pillar">
+                <span class="pillar-title">Active Guards</span>
+                <span class="metric-number" style="margin-top:4px;">4 / 4</span>
+                <span class="pillar-desc">Process · Source Entropy · Network · Ransomware</span>
+              </div>
+              <div class="glass-card scan-pillar">
+                <span class="pillar-title">Flagged Anomalies</span>
+                <span class="metric-number" id="rt-flagged-count" style="margin-top:4px;">0</span>
+                <span class="pillar-desc">Real-time behavioral or signature detections</span>
+              </div>
+            </div>
+
+            <div class="glass-card overview-table-card">
+              <div class="card-section-header">
+                <div>
+                  <h3>Live Real-Time Telemetry Stream</h3>
+                  <p>Real-time events captured by the background monitoring engine</p>
+                </div>
+              </div>
+              <div class="glass-table-container">
+                <table class="glass-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Guard Module</th>
+                      <th>Target</th>
+                      <th>Inspection Detail</th>
+                      <th>Verdict</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rt-events-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. SCANNER TAB -->
+          <section class="tab-view" id="tab-scanner">
+            <div class="scanner-controls-bar glass-card">
+              <div class="scanner-mode-wrap">
+                <div class="segmented-control">
+                  <button class="segment-btn active" data-scan-mode="quick">Quick Scan</button>
+                  <button class="segment-btn" data-scan-mode="deep">Deep Scan</button>
+                </div>
+                <span class="results-meta" id="results-count-text">Includes full process, startup, network, ransomware, and de-source check.</span>
+              </div>
+
+              <div class="scanner-btn-group">
+                <button class="glass-btn danger" id="quarantine-all-btn" style="display:none;">
+                  <span>Quarantine All</span>
+                </button>
+                <button class="glass-btn primary" id="start-scan-btn">
+                  <span>Start Scan</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Groq AI Scan Verdict Card -->
+            <div class="glass-card groq-verdict-card" id="scan-groq-card" style="display:none;">
+              <div class="groq-card-title">Groq AI Security Assessment</div>
+              <p class="groq-card-body" id="scan-groq-text"></p>
+            </div>
+
+            <!-- Smooth Loading Animation during Scan -->
+            <div class="scan-loader-card glass-card" id="scan-loader-card" style="display:none;">
+              <div class="loader-ring sm">
+                <svg viewBox="0 0 48 48">
+                  <circle class="ring-track" cx="24" cy="24" r="20" fill="none" stroke-width="3" />
+                  <circle class="ring-Head" cx="24" cy="24" r="20" fill="none" stroke-width="3" />
+                </svg>
+              </div>
+              <div class="scan-loader-text">
+                <strong id="scan-step-title">Scanning & de-sourcing system binaries...</strong>
+                <span id="scan-target-text">Inspecting active processes, de-sourcing executables, checking startup hooks and ransomware traps</span>
+              </div>
+            </div>
+
+            <div class="threat-cards-list" id="threat-cards-list">
+              <div class="empty-state glass-card" id="scanner-empty-state">
+                <div class="empty-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <h3>No threats found</h3>
+                <p>No suspicious processes, unauthorized startup hooks, ransomware tampering, or obfuscated binaries were detected.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. DE-SOURCE / SOURCE INSPECTOR TAB -->
+          <section class="tab-view" id="tab-desource">
+            <div class="table-toolbar glass-card">
+              <div class="search-box" style="flex-grow:1; width:auto;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <polyline points="16 18 22 12 16 6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="8 6 2 12 8 18" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <input
+                  type="text"
+                  id="desource-path-input"
+                  placeholder="Enter any .exe, .dll, .ps1, .bat, .vbs, or script file path to de-source & inspect..."
+                />
+              </div>
+              <div class="toolbar-right">
+                <button class="glass-btn secondary" id="desource-inspect-btn">Inspect File Source</button>
+                <button class="glass-btn primary" id="desource-all-btn">De-Source All Running Apps</button>
+              </div>
+            </div>
+
+            <!-- Selected File De-Source Code & Binary Disassembly Viewer -->
+            <div class="glass-card desource-viewer-card" id="desource-viewer-card" style="display:none;">
+              <div class="card-section-header">
+                <div>
+                  <h3 id="desource-view-title">Binary & Source Analysis</h3>
+                  <p id="desource-view-meta">SHA-256 · Entropy · Win32 Imports</p>
+                </div>
+                <div class="toolbar-right">
+                  <button class="glass-btn secondary sm" id="desource-groq-btn">Analyze Source with Groq AI</button>
+                  <button class="glass-btn danger sm" id="desource-quarantine-btn">Quarantine File</button>
+                </div>
+              </div>
+
+              <div class="groq-verdict-box" id="desource-groq-box" style="display:none;">
+                <div class="groq-card-title">Groq AI De-Source Verdict</div>
+                <p class="groq-card-body" id="desource-groq-output"></p>
+              </div>
+
+              <pre class="code-viewer" id="desource-code-output"></pre>
+            </div>
+
+            <!-- Batch De-Sourced Running Executables Table -->
+            <div class="glass-card overview-table-card">
+              <div class="card-section-header">
+                <div>
+                  <h3>De-Sourced Active Executables & Scripts</h3>
+                  <p>Static antivirus check across running binaries: Shannon entropy, packed detection, and imported Win32 APIs</p>
+                </div>
+              </div>
+              <div class="glass-table-container">
+                <table class="glass-table">
+                  <thead>
+                    <tr>
+                      <th>Executable</th>
+                      <th>Format</th>
+                      <th>Entropy</th>
+                      <th>Flagged Imports</th>
+                      <th>Risk Score</th>
+                      <th>Verdict</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="desource-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5. RANSOMWARE PROTECTION TAB -->
+          <section class="tab-view" id="tab-ransomware">
+            <div class="glass-card overview-banner">
+              <div class="overview-banner-left">
+                <div class="banner-emblem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <rect width="8" height="6" x="8" y="11" rx="1"/>
+                    <path d="M10 11V9a2 2 0 1 1 4 0v2"/>
+                  </svg>
+                </div>
+                <div class="banner-copy">
+                  <h2 id="rw-status-heading">Ransomware Shield Active</h2>
+                  <p id="rw-status-desc">
+                    Canary honeypot traps, Volume Shadow Copy (VSS) guard, and mass-encryption behavioral monitors are armed.
+                  </p>
+                </div>
+              </div>
+              <div class="overview-banner-actions">
+                <button class="glass-btn secondary" id="rw-rearm-btn">Re-Arm Canary Traps</button>
+                <button class="glass-btn primary" id="rw-refresh-btn">Verify Integrity</button>
+              </div>
+            </div>
+
+            <div class="scan-pillars-grid">
+              <div class="glass-card scan-pillar">
+                <span class="pillar-title">Canary Honeypot Guard</span>
+                <span class="pillar-desc">Monitors cryptographic SHA-256 decoy files in user folders to catch unauthorized file encryption immediately.</span>
+              </div>
+              <div class="glass-card scan-pillar">
+                <span class="pillar-title">Shadow Copy (VSS) Guard</span>
+                <span class="pillar-desc">Watches for vssadmin, wbadmin, and wmic commands attempting to delete system restore points.</span>
+              </div>
+              <div class="glass-card scan-pillar">
+                <span class="pillar-title">Extension & Entropy Filter</span>
+                <span class="pillar-desc">Detects known ransomware extensions (.locked, .ryuk, .lockbit, .wannacry) and ransom notes.</span>
+              </div>
+            </div>
+
+            <div class="glass-card overview-table-card">
+              <div class="card-section-header">
+                <div>
+                  <h3>Protected Directories & Canary Traps</h3>
+                  <p>Live integrity verification of guarded user directories</p>
+                </div>
+              </div>
+              <div class="glass-table-container">
+                <table class="glass-table">
+                  <thead>
+                    <tr>
+                      <th>Protected Directory</th>
+                      <th>Folder Path</th>
+                      <th>Canary Trap File</th>
+                      <th>Suspicious Files</th>
+                      <th>Canary Integrity</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rw-folders-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. PROCESSES TAB -->
+          <section class="tab-view" id="tab-processes">
+            <div class="table-toolbar glass-card">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" x2="16.65" y1="21" y2="16.65"/>
+                </svg>
+                <input type="text" id="proc-search-input" placeholder="Search processes by name, PID, or path..." />
+              </div>
+              <div class="toolbar-right">
+                <button class="glass-btn secondary" id="refresh-procs-btn">Refresh</button>
+              </div>
+            </div>
+
+            <div class="glass-table-container">
+              <table class="glass-table">
+                <thead>
+                  <tr>
+                    <th>PID</th>
+                    <th>Application</th>
+                    <th>Executable Path</th>
+                    <th>CPU</th>
+                    <th>Memory</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="processes-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- 7. NETWORK TAB -->
+          <section class="tab-view" id="tab-network">
+            <div class="table-toolbar glass-card">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" x2="16.65" y1="21" y2="16.65"/>
+                </svg>
+                <input type="text" id="net-search-input" placeholder="Filter by address, port, process, or PID..." />
+              </div>
+              <div class="toolbar-right">
+                <button class="glass-btn secondary" id="refresh-net-btn">Refresh</button>
+              </div>
+            </div>
+
+            <div class="glass-table-container">
+              <table class="glass-table">
+                <thead>
+                  <tr>
+                    <th>Protocol</th>
+                    <th>Process</th>
+                    <th>PID</th>
+                    <th>Local Address</th>
+                    <th>Remote Address</th>
+                    <th>State</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="network-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- 8. STARTUP / AUTORUNS TAB -->
+          <section class="tab-view" id="tab-autoruns">
+            <div class="table-toolbar glass-card">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" x2="16.65" y1="21" y2="16.65"/>
+                </svg>
+                <input type="text" id="autorun-search-input" placeholder="Filter startup entries by name, location, or command..." />
+              </div>
+              <div class="toolbar-right">
+                <button class="glass-btn secondary" id="refresh-autoruns-btn">Refresh</button>
+              </div>
+            </div>
+
+            <div class="glass-table-container">
+              <table class="glass-table">
+                <thead>
+                  <tr>
+                    <th>Entry Name</th>
+                    <th>Source</th>
+                    <th>Registry / Folder Location</th>
+                    <th>Launch Command</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="autoruns-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- 9. QUARANTINE TAB -->
+          <section class="tab-view" id="tab-quarantine">
+            <div class="table-toolbar glass-card">
+              <span class="toolbar-desc">Isolated files are prevented from executing and stored inside the local vault.</span>
+              <button class="glass-btn secondary" id="refresh-quarantine-btn">Refresh</button>
+            </div>
+
+            <div class="glass-table-container">
+              <table class="glass-table">
+                <thead>
+                  <tr>
+                    <th>Detection</th>
+                    <th>Original Path</th>
+                    <th>SHA-256 Digest</th>
+                    <th>Isolated Date</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="quarantine-tbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- 10. STATS TAB -->
+          <section class="tab-view" id="tab-stats">
+            <!-- Live Telemetry Area Graphs -->
+            <div class="graph-cards-grid">
+              <!-- CPU Live Graph Card -->
+              <div class="glass-card graph-card">
+                <div class="graph-card-header">
+                  <div class="graph-meta">
+                    <span class="graph-title">Processor Load</span>
+                    <span class="graph-subtitle" id="stats-cpu-brand">Sampling processor…</span>
+                  </div>
+                  <div class="graph-value-box">
+                    <span class="graph-big-num" id="stats-cpu-pct">0.0%</span>
+                  </div>
+                </div>
+
+                <div class="svg-graph-wrap">
+                  <div class="graph-scale-labels">
+                    <span>100%</span>
+                    <span>50%</span>
+                    <span>0%</span>
+                  </div>
+                  <svg class="telemetry-svg" viewBox="0 0 460 120" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#f4f4f5" stop-opacity="0.28"/>
+                        <stop offset="85%" stop-color="#f4f4f5" stop-opacity="0.03"/>
+                        <stop offset="100%" stop-color="#f4f4f5" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <line class="grid-line" x1="0" y1="30" x2="460" y2="30" />
+                    <line class="grid-line" x1="0" y1="60" x2="460" y2="60" />
+                    <line class="grid-line" x1="0" y1="90" x2="460" y2="90" />
+                    <path class="graph-area" id="cpu-graph-area" fill="url(#cpuGrad)" d="M0,120 L460,120 Z" />
+                    <path class="graph-line" id="cpu-graph-line" fill="none" d="M0,120 L460,120" />
+                  </svg>
+                  <div class="graph-live-dot" id="cpu-graph-dot"></div>
+                </div>
+              </div>
+
+              <!-- RAM Live Graph Card -->
+              <div class="glass-card graph-card">
+                <div class="graph-card-header">
+                  <div class="graph-meta">
+                    <span class="graph-title">Memory Allocation</span>
+                    <span class="graph-subtitle" id="stats-ram-detail">0.0 GB / 0.0 GB used</span>
+                  </div>
+                  <div class="graph-value-box">
+                    <span class="graph-big-num" id="stats-ram-pct">0.0%</span>
+                  </div>
+                </div>
+
+                <div class="svg-graph-wrap">
+                  <div class="graph-scale-labels">
+                    <span>100%</span>
+                    <span>50%</span>
+                    <span>0%</span>
+                  </div>
+                  <svg class="telemetry-svg" viewBox="0 0 460 120" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="ramGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#d4d4d8" stop-opacity="0.24"/>
+                        <stop offset="85%" stop-color="#d4d4d8" stop-opacity="0.03"/>
+                        <stop offset="100%" stop-color="#d4d4d8" stop-opacity="0.0"/>
+                      </linearGradient>
+                    </defs>
+                    <line class="grid-line" x1="0" y1="30" x2="460" y2="30" />
+                    <line class="grid-line" x1="0" y1="60" x2="460" y2="60" />
+                    <line class="grid-line" x1="0" y1="90" x2="460" y2="90" />
+                    <path class="graph-area" id="ram-graph-area" fill="url(#ramGrad)" d="M0,120 L460,120 Z" />
+                    <path class="graph-line ram" id="ram-graph-line" fill="none" d="M0,120 L460,120" />
+                  </svg>
+                  <div class="graph-live-dot" id="ram-graph-dot"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- System Telemetry Strip -->
+            <div class="glass-card stats-strip">
+              <div class="strip-metrics">
+                <div class="strip-item">
+                  <span class="strip-label">Active Processes</span>
+                  <strong class="strip-val" id="stats-proc-total">0</strong>
+                </div>
+                <div class="strip-divider"></div>
+                <div class="strip-item">
+                  <span class="strip-label">System Uptime</span>
+                  <strong class="strip-val" id="stats-uptime-text">—</strong>
+                </div>
+                <div class="strip-divider"></div>
+                <div class="strip-item">
+                  <span class="strip-label">Swap Memory</span>
+                  <strong class="strip-val" id="stats-swap-text">0.0 GB</strong>
+                </div>
+              </div>
+
+              <div class="strip-actions">
+                <button class="glass-btn secondary" id="stats-auto-btn">Live Graph: On</button>
+                <button class="glass-btn secondary" id="stats-refresh-btn">Refresh</button>
+              </div>
+            </div>
+
+            <!-- Spacious Dual Application Columns -->
+            <div class="stats-columns">
+              <div class="glass-card stats-panel">
+                <div class="stats-panel-header">
+                  <div>
+                    <h3>Top Memory Consumers</h3>
+                    <span>Grouped by application</span>
+                  </div>
+                </div>
+                <div class="consumer-list" id="stats-ram-list"></div>
+              </div>
+
+              <div class="glass-card stats-panel">
+                <div class="stats-panel-header">
+                  <div>
+                    <h3>Top CPU Consumers</h3>
+                    <span>Real-time processor share</span>
+                  </div>
+                </div>
+                <div class="consumer-list" id="stats-cpu-list"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+  </body>
+</html>
